@@ -1,0 +1,1002 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Negotiation Simulator</title>
+<meta name="description" content="Practice everyday negotiations: asking for a raise, trading shifts, handling a coworker who took credit. Eight scenarios with a counterpart that reacts to every move, plus a debrief.">
+<meta property="og:title" content="AI Negotiation Simulator">
+<meta property="og:description" content="Eight practice scenarios covering pay, scheduling, and workplace conflict.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231C1E26'/%3E%3Crect x='5' y='13' width='10' height='6' rx='3' fill='%2314A39A'/%3E%3Crect x='17' y='13' width='10' height='6' rx='3' fill='%23A67CE0'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;1,8..60,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F2F3F7;
+    --surface: #FFFFFF;
+    --ink: #1C1E26;
+    --muted: #5B6070;
+    --line: #DADDE6;
+    --you: #0B6E69;
+    --you-soft: #E3F2F0;
+    --them: #6B3FA0;
+    --them-soft: #F0EAF8;
+    --good-bg: #E3F2F0; --good-fg: #0B5E59;
+    --mixed-bg: #FFF2C7; --mixed-fg: #7A5A00;
+    --bad-bg: #FDE6E3; --bad-fg: #A3271A;
+    --sans: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+    --serif: "Source Serif 4", Georgia, serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #13141A;
+      --surface: #1C1E27;
+      --ink: #E8E9EF;
+      --muted: #A2A6B5;
+      --line: #2E313D;
+      --you: #3CC2B8;
+      --you-soft: #16302F;
+      --them: #B794EE;
+      --them-soft: #2A2238;
+      --good-bg: #16302F; --good-fg: #6FD8CF;
+      --mixed-bg: #3A3014; --mixed-fg: #F0CF6A;
+      --bad-bg: #3B1C19; --bad-fg: #F49A8E;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 1rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--you); text-underline-offset: 0.18em; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 3px solid var(--you); outline-offset: 2px; }
+  .wrap { width: min(1180px, 100% - 2rem); margin-inline: auto; }
+
+  .top {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+    padding-block: 1.1rem;
+  }
+  .brand { font-weight: 800; letter-spacing: -0.02em; text-decoration: none; color: var(--ink); font-size: 1.05rem; }
+  .top nav { display: flex; gap: 1.4rem; font-size: 0.95rem; }
+  .top nav a { color: var(--muted); text-decoration: none; }
+  .top nav a:hover { color: var(--ink); }
+
+  .intro { padding-block: 1.5rem 1.75rem; max-width: 46rem; }
+  h1 {
+    font-weight: 800;
+    font-size: clamp(2.3rem, 5.5vw, 4rem);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    margin: 0 0 0.9rem;
+  }
+  .intro p { font-size: clamp(1.05rem, 1.7vw, 1.2rem); color: var(--muted); margin: 0; max-width: 38rem; }
+
+  /* Simulator layout */
+  .sim {
+    display: grid;
+    grid-template-columns: 17.5rem minmax(0, 1fr);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    min-height: 640px;
+  }
+  .sim > * { min-width: 0; }
+  .top nav a { white-space: nowrap; }
+  .picker {
+    border-right: 1px solid var(--line);
+    padding: 1.1rem 0.75rem 1.25rem;
+    background: var(--surface);
+  }
+  .picker h2 { font-size: 0.95rem; font-weight: 600; color: var(--muted); margin: 0.35rem 0.5rem 0.75rem; letter-spacing: 0; }
+  .group { margin-bottom: 1rem; }
+  .group h3 { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0 0.5rem 0.3rem; }
+  .scen {
+    display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;
+    width: 100%; text-align: left;
+    background: transparent; border: 0; border-radius: 8px;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.98rem; font-weight: 500;
+    cursor: pointer;
+  }
+  .scen:hover { background: var(--bg); }
+  .scen[aria-current="true"] { background: var(--ink); color: var(--surface); }
+  .scen .best { font-size: 0.75rem; font-weight: 600; padding: 0.05rem 0.45rem; border-radius: 999px; white-space: nowrap; }
+  .best.strong { background: var(--good-bg); color: var(--good-fg); }
+  .best.fair { background: var(--mixed-bg); color: var(--mixed-fg); }
+  .best.weak, .best.walked { background: var(--bad-bg); color: var(--bad-fg); }
+
+  .stage { display: grid; grid-template-rows: auto auto 1fr auto; min-width: 0; }
+  .brief {
+    padding: 1.4rem 1.6rem 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .brief .cat { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.25rem; }
+  .brief h2 { font-size: 1.6rem; letter-spacing: -0.02em; line-height: 1.1; margin: 0 0 0.6rem; }
+  .brief p { margin: 0 0 0.45rem; max-width: 46rem; }
+  .brief .goal { font-weight: 500; }
+  .brief .goal b { color: var(--you); }
+
+  .meters {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;
+    padding: 0.9rem 1.6rem;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  .meter label { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.3rem; }
+  .meter label span:last-child { font-variant-numeric: tabular-nums; color: var(--muted); }
+  .bar { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+  .fill { height: 100%; border-radius: 99px; transition: width 600ms cubic-bezier(.2,.8,.2,1); }
+  .meter.deal .fill { background: var(--you); }
+  .meter.rel .fill { background: var(--them); }
+  .delta { font-size: 0.8rem; font-weight: 600; margin-left: 0.4rem; }
+  .delta.up { color: var(--good-fg); }
+  .delta.down { color: var(--bad-fg); }
+
+  .transcript {
+    padding: 1.25rem 1.6rem;
+    overflow-y: auto;
+    max-height: 520px;
+    min-height: 260px;
+    scroll-behavior: smooth;
+  }
+  .line {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.9rem;
+    padding-block: 0.6rem;
+  }
+  .who { font-size: 0.85rem; font-weight: 700; padding-top: 0.2rem; }
+  .line.them .who { color: var(--them); }
+  .line.you .who { color: var(--you); }
+  .said { font-family: var(--serif); font-size: 1.12rem; line-height: 1.55; margin: 0; max-width: 40rem; }
+  .line.you .said { color: var(--muted); }
+  .line.note .said { font-family: var(--sans); font-size: 0.9rem; color: var(--muted); font-style: italic; }
+  .typing .said span {
+    display: inline-block; width: 6px; height: 6px; margin-right: 4px; border-radius: 50%;
+    background: var(--them); opacity: 0.35; animation: blink 1s infinite;
+  }
+  .typing .said span:nth-child(2) { animation-delay: .15s; }
+  .typing .said span:nth-child(3) { animation-delay: .3s; }
+  @keyframes blink { 50% { opacity: 1; } }
+
+  .moves { padding: 1rem 1.6rem 1.4rem; border-top: 1px solid var(--line); }
+  .moves .prompt { font-size: 0.9rem; font-weight: 600; color: var(--muted); margin: 0 0 0.6rem; }
+  .opt {
+    display: block; width: 100%; text-align: left;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--you);
+    border-radius: 8px;
+    padding: 0.75rem 0.95rem;
+    margin-bottom: 0.55rem;
+    font-family: var(--serif); font-size: 1.05rem; line-height: 1.45;
+    cursor: pointer;
+  }
+  .opt:hover { background: var(--you-soft); }
+  .opt:disabled { opacity: 0.5; cursor: default; }
+
+  /* Debrief */
+  .debrief { padding: 1.25rem 1.6rem 1.6rem; border-top: 1px solid var(--line); }
+  .result { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.4rem; }
+  .result h3 { font-size: 1.5rem; margin: 0; letter-spacing: -0.02em; }
+  .tier { font-size: 0.85rem; font-weight: 700; padding: 0.15rem 0.6rem; border-radius: 999px; }
+  .tier.strong { background: var(--good-bg); color: var(--good-fg); }
+  .tier.fair { background: var(--mixed-bg); color: var(--mixed-fg); }
+  .tier.weak, .tier.walked { background: var(--bad-bg); color: var(--bad-fg); }
+  .debrief > p { margin: 0 0 1rem; max-width: 46rem; }
+  .movelist { list-style: none; padding: 0; margin: 0 0 1.25rem; }
+  .movelist li { padding: 0.85rem 0; border-top: 1px solid var(--line); }
+  .movelist .head { display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.25rem; }
+  .movelist .round { font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .movelist .tactic { font-weight: 700; }
+  .chip { font-size: 0.75rem; font-weight: 700; padding: 0.05rem 0.5rem; border-radius: 999px; }
+  .chip.good { background: var(--good-bg); color: var(--good-fg); }
+  .chip.mixed { background: var(--mixed-bg); color: var(--mixed-fg); }
+  .chip.costly { background: var(--bad-bg); color: var(--bad-fg); }
+  .movelist .quote { font-family: var(--serif); font-style: italic; color: var(--muted); margin: 0 0 0.3rem; }
+  .movelist .coach { margin: 0; max-width: 46rem; }
+  .actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+  .btn {
+    border: 0; border-radius: 8px; padding: 0.65rem 1.1rem; font-weight: 600; cursor: pointer;
+    background: var(--ink); color: var(--surface);
+  }
+  .btn.secondary { background: transparent; border: 1.5px solid var(--ink); color: var(--ink); }
+
+  /* Below the fold */
+  section { padding-block: clamp(3rem, 7vw, 5rem); }
+  section + section { border-top: 1px solid var(--line); }
+  section h2 { font-size: clamp(1.7rem, 3.5vw, 2.4rem); letter-spacing: -0.03em; line-height: 1.05; margin: 0 0 1.25rem; }
+  .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(1.25rem, 3vw, 2.5rem); }
+  .cols h3 { font-size: 1.1rem; margin: 0 0 0.35rem; }
+  .cols p { margin: 0; color: var(--muted); }
+  dl.tactics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem 2.5rem; margin: 0; }
+  dl.tactics dt { font-weight: 700; font-size: 1.05rem; }
+  dl.tactics dd { margin: 0.2rem 0 0; color: var(--muted); font-family: var(--serif); font-size: 1.05rem; max-width: 32rem; }
+  .about p { max-width: 40rem; margin: 0 0 0.9rem; }
+  .about .fact { font-family: var(--serif); font-size: 1.25rem; line-height: 1.5; color: var(--ink); }
+  footer { border-top: 1px solid var(--line); padding-block: 1.75rem 2.5rem; color: var(--muted); font-size: 0.9rem; }
+
+  @media (max-width: 900px) {
+    .sim { grid-template-columns: 1fr; }
+    .picker { border-right: 0; border-bottom: 1px solid var(--line); padding: 0.9rem 0.75rem; }
+    .groups { display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 0.25rem; }
+    .group { margin: 0; min-width: 13.5rem; }
+    .cols { grid-template-columns: 1fr; }
+    dl.tactics { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 560px) {
+    .top nav a.hide-sm { display: none; }
+    .brief, .meters, .transcript, .moves, .debrief { padding-left: 1rem; padding-right: 1rem; }
+    .line { grid-template-columns: 1fr; gap: 0.1rem; }
+    .meters { grid-template-columns: 1fr; gap: 0.7rem; }
+    .transcript { max-height: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <a class="brand" href="#">AI Negotiation Simulator</a>
+      <nav aria-label="Sections">
+        <a href="#how">How it works</a>
+        <a href="#tactics" class="hide-sm">Tactics</a>
+        <a href="#about">About</a>
+      </nav>
+    </header>
+  </div>
+
+  <main>
+    <div class="wrap">
+      <div class="intro">
+        <h1>Practice the conversations people put off.</h1>
+        <p>Asking for a raise, trading a holiday shift, telling a coworker they took credit for your work. Pick a scenario, choose what to say, and watch how the other side reacts. Every run ends with a debrief on each move you made.</p>
+      </div>
+
+      <div class="sim" id="sim">
+        <aside class="picker" aria-label="Scenarios">
+          <h2>Choose a scenario</h2>
+          <div class="groups" id="groups"></div>
+        </aside>
+
+        <div class="stage" id="stage">
+          <div class="brief" id="brief"></div>
+          <div class="meters" aria-label="Scores">
+            <div class="meter deal">
+              <label><span>Deal for you<span class="delta" id="deal-delta"></span></span><span id="deal-val">45</span></label>
+              <div class="bar" role="progressbar" aria-label="Deal for you" aria-valuemin="0" aria-valuemax="100" id="deal-bar"><div class="fill" id="deal-fill"></div></div>
+            </div>
+            <div class="meter rel">
+              <label><span>Relationship<span class="delta" id="rel-delta"></span></span><span id="rel-val">55</span></label>
+              <div class="bar" role="progressbar" aria-label="Relationship" aria-valuemin="0" aria-valuemax="100" id="rel-bar"><div class="fill" id="rel-fill"></div></div>
+            </div>
+          </div>
+          <div class="transcript" id="transcript" aria-live="polite"></div>
+          <div id="bottom"></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="how">
+      <div class="wrap">
+        <h2>How it works</h2>
+        <div class="cols">
+          <div>
+            <h3>Two things are always in play</h3>
+            <p>The counterpart in every scenario tracks how good the deal is for you and how much they trust you. Most moves trade one against the other.</p>
+          </div>
+          <div>
+            <h3>They react to what you say</h3>
+            <p>Each reply depends on the move you chose. Push too hard and trust drops. Let it fall far enough and they end the conversation with no deal.</p>
+          </div>
+          <div>
+            <h3>You get a debrief</h3>
+            <p>At the end you see your result, the tactic behind every move, and a note on what it earned or cost you. Then run it again and try a different path.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="tactics">
+      <div class="wrap">
+        <h2>What the scenarios teach</h2>
+        <dl class="tactics">
+          <div><dt>Anchor with evidence</dt><dd>Open with a specific number you can justify. The first credible number tends to shape where the conversation lands.</dd></div>
+          <div><dt>Ask about their constraints</dt><dd>A no on budget or staffing usually hides options. Asking what is actually possible turns a refusal into a set of choices.</dd></div>
+          <div><dt>Trade instead of conceding</dt><dd>When you give something, ask for something back. Free concessions teach the other side that pushing works.</dd></div>
+          <div><dt>Widen the pie</dt><dd>Bring in more than one issue, such as timing, title, or a bonus, so both sides have more ways to say yes.</dd></div>
+          <div><dt>Name the impact without blaming</dt><dd>Describe what happened and what it cost you. Facts and effects are much harder to argue with than accusations.</dd></div>
+          <div><dt>Lock it in</dt><dd>End with a specific agreement, a check-in date, or a note in writing, so the deal survives a busy month.</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section id="about" class="about">
+      <div class="wrap">
+        <h2>About</h2>
+        <p class="fact">Built by Vittesh Maganti as an independent project, with eight scenarios covering pay negotiations, scheduling, and workplace conflict. The simulator was tested with 15 peers across 60 practice sessions.</p>
+        <p>This web version runs entirely in your browser. Nothing you choose is sent anywhere.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">AI Negotiation Simulator, an independent project by Vittesh Maganti.</div>
+  </footer>
+
+<script>
+(function () {
+  'use strict';
+
+  // Each option: say (your line), reply (their answer), deal / rel (score changes),
+  // tactic (name shown in the debrief), note (coaching shown in the debrief).
+  var SCENARIOS = [
+    {
+      id: 'raise', cat: 'Pay', title: 'The raise conversation',
+      them: 'Dana', role: 'your manager',
+      setup: 'You are a data analyst two years into the job. Since your teammate Sam left in March, you have also owned the weekly reporting he used to run. You earn $68,000, and your research puts the market for your role at $74,000 to $80,000.',
+      goal: 'Get a meaningful raise without souring things with Dana.',
+      opener: 'Thanks for setting this up. You said you wanted to talk about compensation. What’s on your mind?',
+      walk: 'I think we should stop here and pick this up another time.',
+      rounds: [
+        [
+          { say: 'Since March I’ve owned the weekly reporting that used to be Sam’s, and it now ships two days earlier. Market data for my role is $74,000 to $80,000. I’d like to get to $78,000.',
+            reply: 'That’s a fair summary of your work, and the faster reporting has been noticed. $78,000 is more than I have this year, though. The raise pool is tight.',
+            deal: 18, rel: 5, tactic: 'Anchored with evidence',
+            note: 'You led with value you added and a researched number. A specific, justified anchor near the top of the range leaves room to land where you want.' },
+          { say: 'I was hoping for some kind of raise, if anything is available. I know budgets are tight.',
+            reply: 'I appreciate you understanding that. Budgets are tight this year. I could probably do something small, like the standard cost-of-living adjustment.',
+            deal: -12, rel: 4, tactic: 'Opened without a number',
+            note: 'Leading with their constraints invites a small answer. Without a number from you, Dana sets the anchor, and it will be low.' },
+          { say: 'I’ve had an offer for $80,000 somewhere else. Match it or I’ll probably take it.',
+            reply: 'Oh. I didn’t realize you were looking. I can’t match numbers on the spot, and honestly that changes how I think about your plans here.',
+            deal: 6, rel: -22, tactic: 'Bluffed an ultimatum',
+            note: 'An ultimatum built on an offer you don’t have is a gamble. If Dana calls it, you either leave or lose credibility, and a collaboration has become a standoff.' }
+        ],
+        [
+          { say: 'I understand the pool is limited. What does the budget allow this cycle, and is there room on timing, title, or an earlier review?',
+            reply: 'I could get you to $73,500 now. And since you’ve taken over Sam’s work, I can make the case for a Senior Analyst title, which comes with a review in six months.',
+            deal: 14, rel: 10, tactic: 'Asked about their constraints',
+            note: 'Asking what is actually possible turns a no into options. Timing, title, and review dates are often easier for a manager to give than base pay.' },
+          { say: 'Okay, I understand. Whatever you can do is fine.',
+            reply: 'Thanks. I’ll put in for the standard adjustment, which brings you to about $70,000.',
+            deal: -14, rel: 3, tactic: 'Accepted without countering',
+            note: 'Folding at the first pushback leaves money on the table. A budget objection is often an opening move rather than a final answer.' },
+          { say: 'The budget isn’t really my problem. The market says I’m underpaid.',
+            reply: 'It’s my problem, though, and I’m the one who has to take this to finance. I’ll see what I can do, but I can’t promise $78,000.',
+            deal: 4, rel: -14, tactic: 'Dismissed their constraint',
+            note: 'You may be right about the market, but brushing off Dana’s constraint makes her an opponent. She is the person who has to argue for you upstairs.' }
+        ],
+        [
+          { say: 'If we can do $74,500 now, the Senior Analyst title, and a six-month review with the rest of the gap on the table, I’m in. Could we put that in writing?',
+            reply: 'I can work with that. $74,500, the title change, and a six-month review. I’ll send you a summary this afternoon.',
+            deal: 14, rel: 6, tactic: 'Packaged and put it in writing',
+            note: 'You bundled pay, title, and a dated follow-up, then asked for it in writing. Written commitments survive reorgs and manager changes.' },
+          { say: 'How about we just meet in the middle?',
+            reply: 'The middle of what we’ve discussed is about $73,000. I can do that.',
+            deal: 3, rel: 2, tactic: 'Split the difference',
+            note: 'Splitting the difference is quick, but it rewards whoever anchored harder, and it skips non-salary items that might matter more.' },
+          { say: 'I’ll need to think about whether I can stay at anything under $78,000.',
+            reply: 'Understood. I’ll leave the offer where it is for now. Let me know what you decide.',
+            deal: -4, rel: -12, tactic: 'Drew a line you can’t back up',
+            note: 'A hard line only works when you are ready to act on it. Without another offer, this mostly creates tension.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'Dana agrees to a raise near the top of what she can approve, plus a title change and a dated review. You leave with a raise now and a plan for the rest.',
+        fair: 'You get a raise, but a smaller one than your work justified, and nothing is set for later.',
+        weak: 'You end up with roughly the standard adjustment, about what you would have gotten without asking.',
+        walked: 'Dana ends the meeting. The raise is off the table for now, and the next conversation starts from a worse place.'
+      }
+    },
+    {
+      id: 'offer', cat: 'Pay', title: 'The first job offer',
+      them: 'Priya', role: 'the recruiter',
+      setup: 'You are about to graduate and have just been offered a Marketing Coordinator role at $52,000. You want this job. Your research says similar roles in the area pay $55,000 to $60,000, and you would need to move for it.',
+      goal: 'Improve the offer while keeping Priya on your side.',
+      opener: 'We’re excited to offer you the Marketing Coordinator role at $52,000, starting June 2. How does that sound?',
+      walk: 'I think we’ll need to move forward with other candidates. I wish you the best.',
+      rounds: [
+        [
+          { say: 'Thank you, I’m really excited about this team. Before I say yes, I’d like to talk about salary. From what I’ve seen for this role here, $58,000 is closer to the range.',
+            reply: 'I appreciate you being upfront. I’d have to get approval for that. Is salary the only piece you’re thinking about?',
+            deal: 16, rel: 6, tactic: 'Showed enthusiasm, then countered',
+            note: 'Real interest tells Priya you are likely to sign, which makes her willing to work for you. A researched counter then gives her something specific to take to the hiring manager.' },
+          { say: 'That sounds good. Is there any flexibility at all?',
+            reply: 'There might be a little. I could check whether $53,000 is possible. Is salary the only piece you’re thinking about?',
+            deal: -6, rel: 4, tactic: 'Asked vaguely',
+            note: 'Asking for "any flexibility" without a number lets Priya decide what flexible means, and it is usually small.' },
+          { say: 'That’s well below market. I’d need $65,000 to consider it.',
+            reply: 'That’s quite a bit above what we budgeted for this level. I’m not sure we’re aligned. Is salary the only thing you’re weighing?',
+            deal: 6, rel: -18, tactic: 'Overreached on the anchor',
+            note: 'An anchor far above your own research invites a reset rather than a counter. Priya may wonder whether you will stay, and offers can be withdrawn.' }
+        ],
+        [
+          { say: 'Salary matters most, but I’d also like to talk about a sign-on bonus to help with the move.',
+            reply: 'A relocation bonus is possible. I could probably do $3,000. On base salary, I can try for $56,000.',
+            deal: 14, rel: 8, tactic: 'Widened the pie',
+            note: 'Bringing in another item gave Priya more ways to say yes. Sign-on bonuses are one-time costs, which are often easier to approve than salary.' },
+          { say: 'Just salary. I really need the number to be higher.',
+            reply: 'Okay. Let me see what the hiring manager says. I might be able to get to $54,000.',
+            deal: 4, rel: -2, tactic: 'Narrowed to one issue',
+            note: 'With a single issue on the table, every gain for you is a loss for them. More pieces leave more room for both sides to come out ahead.' },
+          { say: 'I guess so. Maybe I’m asking for too much.',
+            reply: 'No worries! Honestly, $52,000 is a strong offer for this level.',
+            deal: -12, rel: 2, tactic: 'Talked yourself down',
+            note: 'Second-guessing out loud signals that you will accept less. If you have done the research, let your number stand.' }
+        ],
+        [
+          { say: 'If you can get to $56,000 with the $3,000 relocation bonus, I’m ready to sign this week.',
+            reply: 'That works. I’ll get the revised offer letter to you tomorrow.',
+            deal: 12, rel: 8, tactic: 'Offered a clear yes',
+            note: 'Tying your acceptance to specific terms makes it easy for Priya to close. Recruiters are measured on filled roles, so a clear path to yes helps her too.' },
+          { say: 'Can I take a couple of weeks to think it over?',
+            reply: 'We’d need an answer by Friday, since we have other candidates in the process.',
+            deal: -4, rel: -6, tactic: 'Stalled without a reason',
+            note: 'A long pause with no reason can make a team worry about your commitment. A day or two is normal. Two weeks needs an explanation.' },
+          { say: 'I have other interviews, so I’d need $60,000 to sign.',
+            reply: 'We’ve already moved quite a bit. I’m not able to go higher than what’s on the table.',
+            deal: 2, rel: -14, tactic: 'Moved the target late',
+            note: 'Raising your ask after they moved toward you erodes trust. It makes every concession feel like it only leads to the next demand.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'You sign at a higher base with a relocation bonus, and the team is still glad to have you.',
+        fair: 'You get a modest bump over the first offer.',
+        weak: 'You start close to the original offer.',
+        walked: 'Priya tells you the team is moving forward with another candidate.'
+      }
+    },
+    {
+      id: 'discount', cat: 'Pay', title: 'The discount request',
+      them: 'Marcus', role: 'a cafe owner',
+      setup: 'You are a freelance designer. You quoted Marcus $1,200 for a logo and a full brand kit for his new cafe. He likes your work but wants to pay less.',
+      goal: 'Win the job without cutting your rate.',
+      opener: 'I love your portfolio. Honestly, though, $1,200 is more than I planned to spend. Could you do it for $700?',
+      walk: 'I think I’ll keep looking. Thanks for your time.',
+      rounds: [
+        [
+          { say: 'I get it, opening a cafe comes with a lot of costs. What do you most need ready for opening day?',
+            reply: 'Really just the logo and a menu header. The full brand kit would be nice eventually, but we open in three weeks.',
+            deal: 8, rel: 14, tactic: 'Asked about interests',
+            note: 'Before defending your price, you found out what he actually needs. That opens a way to cut scope instead of cutting your rate.' },
+          { say: 'Sure, I can do it for $700.',
+            reply: 'That helps a lot, thank you. We open in three weeks, so I mostly need the logo and a menu header first.',
+            deal: -20, rel: 4, tactic: 'Dropped your rate',
+            note: 'Cutting your price by 40% for the same work trains clients to push back, and it resets what this client expects to pay next time.' },
+          { say: 'My rate is my rate. If $1,200 doesn’t work, I’m not the right designer for you.',
+            reply: 'Okay. I was hoping we could work something out. We open in three weeks and I mostly need a logo and a menu header.',
+            deal: 4, rel: -18, tactic: 'Refused to engage',
+            note: 'Holding your price is reasonable, but shutting down the conversation leaves Marcus nowhere to go except away. You also never learned what he needed.' }
+        ],
+        [
+          { say: 'Here’s an option: the logo and menu header for $750 now, and the rest of the brand kit for $550 whenever you’re ready.',
+            reply: 'That actually works better for me. Could you knock off a little more if I pay upfront?',
+            deal: 16, rel: 8, tactic: 'Cut scope, kept the rate',
+            note: 'You matched the price to the scope. Marcus stays in budget, you keep your rate, and the rest of the project is still on the table.' },
+          { say: 'I’ll include the full brand kit anyway, no extra charge.',
+            reply: 'Wow, that’s generous. Any chance you’d knock off a bit more if I pay upfront?',
+            deal: -14, rel: 6, tactic: 'Gave away extra work',
+            note: 'Free extra work feels generous, but it lowers the value of what you do, and here it invited another ask right away.' },
+          { say: 'It’s still $1,200 for everything. I don’t do partial projects.',
+            reply: 'That’s frustrating. Would you at least come down a bit if I pay upfront?',
+            deal: 2, rel: -10, tactic: 'Turned down a workable path',
+            note: 'Refusing to adjust scope removes the most natural compromise. Being flexible on scope does not mean being flexible on rate.' }
+        ],
+        [
+          { say: 'I can’t go lower on the rate, but if you pay upfront I’ll include an extra round of revisions.',
+            reply: 'Deal. I’ll send payment today. Excited to see what you come up with.',
+            deal: 10, rel: 8, tactic: 'Traded instead of conceding',
+            note: 'When he asked for more, you gave something that costs you little and got upfront payment in return. Every concession should buy you something.' },
+          { say: 'Sure, take another $100 off.',
+            reply: 'Thank you! I’ll send payment today.',
+            deal: -8, rel: 3, tactic: 'Conceded again',
+            note: 'A second concession with nothing in return teaches the other side that pushing works. Next time, ask for something back.' },
+          { say: 'Asking for more after we’ve already agreed is a bit much.',
+            reply: 'I didn’t mean to offend. Let me think about whether this is the right fit.',
+            deal: 0, rel: -12, tactic: 'Made it personal',
+            note: 'Calling out his request turns a normal ask into a judgment about him. A calm no, or a trade, keeps the relationship intact.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'You keep your rate, scope the first phase to his budget, and Marcus is already planning the second phase with you.',
+        fair: 'You win the job, for less than your work is worth.',
+        weak: 'You do a lot of work for very little, and your next quote to Marcus will be harder.',
+        walked: 'Marcus decides to find another designer.'
+      }
+    },
+    {
+      id: 'tuesdays', cat: 'Scheduling', title: 'Tuesdays off',
+      them: 'Luis', role: 'your shift supervisor',
+      setup: 'You work about 20 hours a week at a grocery store. Next semester you have a class on Tuesdays from 4 to 7, which overlaps the Tuesday evening close. Tuesday nights are already short-staffed.',
+      goal: 'Get Tuesdays off without leaving Luis with a gap.',
+      opener: 'Hey, you wanted to talk about next month’s schedule? Tuesday nights are already tight, so I hope it’s not about those.',
+      walk: 'I can’t make this work right now. We’ll keep the schedule as it is.',
+      rounds: [
+        [
+          { say: 'It is, actually, and I know Tuesdays are tight. I signed up for a class that meets Tuesdays 4 to 7, and I wanted to come to you early so we can plan around it.',
+            reply: 'I appreciate the heads up. I’m not sure who’d cover, though. Tuesday close is the hardest shift to fill.',
+            deal: 10, rel: 12, tactic: 'Raised it early and honestly',
+            note: 'Bringing the conflict weeks ahead, and acknowledging his problem, made you a partner in solving it instead of a scheduling headache.' },
+          { say: 'Never mind, it’s not a big deal.',
+            reply: 'You sure? If it’s about Tuesdays I’d rather know now. Tuesday close is the hardest shift to fill.',
+            deal: -16, rel: 2, tactic: 'Avoided the ask',
+            note: 'Dropping the request does not make the conflict go away. It moves it to a worse moment, like the first Tuesday of class.' },
+          { say: 'It is. I can’t work Tuesdays anymore, starting next month.',
+            reply: 'Starting next month? That leaves me scrambling. Tuesday close is the hardest shift to fill.',
+            deal: 6, rel: -14, tactic: 'Announced instead of asking',
+            note: 'Stating your need is fine, but presenting it as settled leaves Luis no role except absorbing the problem. He will bend more if he is part of the plan.' }
+        ],
+        [
+          { say: 'What if I pick up Saturday mornings in exchange? I know those are hard to fill too, and I’ll ask Jordan if they want my Tuesday hours.',
+            reply: 'Saturday mornings would help a lot. If Jordan takes Tuesdays, this can work. Could you still cover the first Tuesday if Jordan can’t start right away?',
+            deal: 16, rel: 10, tactic: 'Offered a trade and a fix',
+            note: 'You gave Luis a trade he values and started solving the coverage gap yourself, instead of handing him your problem.' },
+          { say: 'That’s really your job to figure out, though, right?',
+            reply: 'It is my job, and it’d be a lot easier if you helped. Can you at least cover the first Tuesday while I sort it out?',
+            deal: 2, rel: -16, tactic: 'Handed off the problem',
+            note: 'Scheduling is technically his job, but saying so makes him less willing to bend. Helping with the fix costs you little and earns a lot.' },
+          { say: 'Could I maybe just leave early on Tuesdays?',
+            reply: 'How early? Class at 4 means you’d miss the whole evening anyway. Can you at least cover the first Tuesday while we figure it out?',
+            deal: -6, rel: 4, tactic: 'Settled for a half-fix',
+            note: 'Leaving early will not get you to a 4 o’clock class. A compromise that does not solve your real problem only delays the next conversation.' }
+        ],
+        [
+          { say: 'Yes, I can cover the first Tuesday if needed, and I’ll text you once Jordan confirms. Can we put the new schedule in the system this week?',
+            reply: 'Deal. I’ll update the schedule once Jordan’s in. Thanks for handling this the right way.',
+            deal: 10, rel: 8, tactic: 'Gave a little, then locked it in',
+            note: 'A small, bounded favor showed good faith, and asking to put it in the system made the agreement real.' },
+          { say: 'I can’t. I’ve already paid for the class.',
+            reply: 'Alright. I’ll figure it out, but it’s going to be tight.',
+            deal: 2, rel: -8, tactic: 'Refused a small ask',
+            note: 'One bounded favor would have cost you little. Refusing it right after asking for a big change can feel one-sided.' },
+          { say: 'Sure, I’ll keep working Tuesdays until you find someone.',
+            reply: 'Thanks, that takes the pressure off. I’ll let you know when I find someone.',
+            deal: -14, rel: 4, tactic: 'Left it open-ended',
+            note: '"Until you find someone" has no end date. Open-ended concessions have a way of becoming permanent.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'Your Tuesdays are free from the start of the semester, Luis has Saturday coverage, and he trusts you with the next request.',
+        fair: 'You get Tuesdays off eventually, after a rough few weeks.',
+        weak: 'You are still on the Tuesday schedule, and the class is at risk.',
+        walked: 'Luis says he cannot change the schedule, and you will have to choose between the job and the class.'
+      }
+    },
+    {
+      id: 'deadlines', cat: 'Scheduling', title: 'Two deadlines, one week',
+      them: 'Ana', role: 'your manager',
+      setup: 'You are a junior engineer. A feature launch is due Friday, and the product manager is also expecting your bug bash report on Friday. You cannot do both well this week.',
+      goal: 'Reset expectations before Friday without looking like you can’t handle the work.',
+      opener: 'Quick check-in. We’re still on track for the launch on Friday, right?',
+      walk: 'Let’s stop here. I need to think about how we handle this.',
+      rounds: [
+        [
+          { say: 'The launch is on track, but I want to flag a conflict. The bug bash report is also due Friday, and I can’t do both well. Can we look at priorities together?',
+            reply: 'Thanks for raising it. Both matter, though. The PM has been asking about that report all week.',
+            deal: 12, rel: 12, tactic: 'Flagged the risk early',
+            note: 'Managers would much rather hear about a conflict on Tuesday than discover it on Friday. Naming it and asking to prioritize made it a shared decision.' },
+          { say: 'Yep, all good!',
+            reply: 'Great. Oh, and the PM was asking about the bug bash report. That’s still Friday as well, right?',
+            deal: -16, rel: 2, tactic: 'Hid the problem',
+            note: 'Saying everything is fine buys a calm Tuesday and a terrible Friday. Problems raised late cost far more trust than problems raised early.' },
+          { say: 'Honestly, no. You’ve given me too much and it’s not realistic.',
+            reply: 'I didn’t realize you felt that way. Both of these were agreed weeks ago, and the PM’s report is due Friday too.',
+            deal: 2, rel: -14, tactic: 'Led with blame',
+            note: 'The workload may well be unrealistic, but opening with blame puts Ana on the defensive before she understands the problem.' }
+        ],
+        [
+          { say: 'Here’s what I’d suggest. I finish the launch Friday, send the PM the top ten bugs on Friday, and send the full report Tuesday. Would that work for them?',
+            reply: 'That’s reasonable. The PM mainly needs the top issues for Monday’s planning. Would you be okay telling them yourself?',
+            deal: 16, rel: 8, tactic: 'Proposed a specific plan',
+            note: 'You came with a concrete option instead of only a problem. Ana can say yes or adjust it, which is much easier than inventing a plan herself.' },
+          { say: 'I’ll just work the weekend and get both done.',
+            reply: 'If you’re sure. I don’t want you burning out, though. Would you at least let the PM know the report might be rough?',
+            deal: -12, rel: 6, tactic: 'Absorbed the cost quietly',
+            note: 'Working one weekend is sometimes fine, but volunteering it by default sets an expectation and hides a real capacity problem.' },
+          { say: 'You decide. I’ll do whatever you say.',
+            reply: 'I’d like your input, though. Maybe ask the PM what they absolutely need by Friday? Could you reach out to them yourself?',
+            deal: -4, rel: 2, tactic: 'Handed over the decision',
+            note: 'Deferring completely means you lose your say in the outcome. You know the work best, so your recommendation carries weight.' }
+        ],
+        [
+          { say: 'Yes, I’ll message them today and copy you so we’re all aligned.',
+            reply: 'Perfect. Thanks for handling this so clearly.',
+            deal: 10, rel: 8, tactic: 'Closed the loop in writing',
+            note: 'Copying your manager keeps everyone working from the same plan, and protects you if questions come up later.' },
+          { say: 'Could you tell them? It would sound better coming from you.',
+            reply: 'I can, but it would be good for you to build that relationship directly.',
+            deal: -6, rel: -4, tactic: 'Passed off the hard message',
+            note: 'Some messages belong to your manager, but this one is about your own work. Delivering it yourself builds trust with the PM.' },
+          { say: 'I’d rather not. They’ll just push back.',
+            reply: 'Then they’ll still expect the full report Friday. I’d really like you to talk to them.',
+            deal: -10, rel: -6, tactic: 'Avoided the conversation',
+            note: 'Avoiding the PM leaves their expectation unchanged, so Friday still goes badly. A short, clear message heads off most pushback.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'The launch ships Friday, the PM has what they need for planning, and Ana now sees you as someone who manages risk.',
+        fair: 'Both things get done, but it costs you a stressful week.',
+        weak: 'Something slips on Friday, and it lands on you.',
+        walked: 'Ana ends the check-in frustrated, and both deadlines stay as they were.'
+      }
+    },
+    {
+      id: 'holiday', cat: 'Scheduling', title: 'The holiday weekend',
+      them: 'Riley', role: 'a coworker',
+      setup: 'You and Riley both asked for December 24 through 26 off from the store. Your manager says only one of you can have it. Your flight home leaves the morning of the 25th.',
+      goal: 'Get the days that matter to you and keep things good with Riley.',
+      opener: 'So, I saw we both put in for the 24th through the 26th. Mae says only one of us can have it. I really need it this year.',
+      walk: 'Forget it. I’ll just let Mae decide.',
+      rounds: [
+        [
+          { say: 'Same here, so let’s figure it out ourselves before Mae picks for us. What makes this year important for you?',
+            reply: 'My kid’s school play is the evening of the 24th, and my parents are in town that night. After that I’m honestly pretty flexible.',
+            deal: 8, rel: 14, tactic: 'Asked about interests',
+            note: 'Asking why revealed needs you can work with. Two people who both "need the weekend" often need different parts of it.' },
+          { say: 'Fine, you take it.',
+            reply: 'Really? Thanks. Though honestly, it’s mainly the 24th I care about. My kid’s school play is that evening.',
+            deal: -18, rel: 6, tactic: 'Gave in immediately',
+            note: 'Giving up the whole weekend before learning what Riley needed meant sacrificing something you may not have had to.' },
+          { say: 'I asked first, so it should be mine.',
+            reply: 'I don’t think that’s how it works. My kid’s school play is the evening of the 24th and my parents are in town.',
+            deal: 4, rel: -16, tactic: 'Argued from a rule',
+            note: 'First come may be fair, but arguing rules turns it into a contest. Even if you win, you will be working beside someone who feels cheated.' }
+        ],
+        [
+          { say: 'My flight is the morning of the 25th, so I need the 25th and 26th. What if you take the 24th and I take the 25th and 26th?',
+            reply: 'That could actually work. I’d be working the 26th then. Would you take my New Year’s Eve close in exchange? That one’s rough.',
+            deal: 18, rel: 10, tactic: 'Found the split',
+            note: 'Once you both knew which days mattered most, the conflict mostly disappeared. Many either-or fights have a split hiding inside them.' },
+          { say: 'Whoever Mae picks, I guess.',
+            reply: 'I’d rather we sort it out ourselves. Would you take my New Year’s Eve close if I gave you more of the holiday?',
+            deal: -8, rel: 0, tactic: 'Left it to chance',
+            note: 'Letting a third party decide gives up the chance to design a better deal yourselves. You both know your needs better than Mae does.' },
+          { say: 'My trip is booked and nonrefundable. You’ll have to work it.',
+            reply: 'That’s not fair. I have one evening that matters. Would you at least take my New Year’s Eve close if I give up the rest?',
+            deal: 6, rel: -14, tactic: 'Used leverage bluntly',
+            note: 'A booked trip is a real constraint, but presenting it as "you lose" ignores that Riley only needed one evening.' }
+        ],
+        [
+          { say: 'I can take the New Year’s Eve close. Let’s tell Mae together so it’s settled.',
+            reply: 'Perfect. Let’s catch her after the morning huddle. Thanks for working this out with me.',
+            deal: 8, rel: 10, tactic: 'Made a fair trade',
+            note: 'Taking a shift Riley dreads balanced the deal, and going to Mae together turned your agreement into the official plan.' },
+          { say: 'No, that’s asking too much.',
+            reply: 'Fine. I’ll take what I can get, I guess.',
+            deal: 2, rel: -10, tactic: 'Refused to reciprocate',
+            note: 'A deal where one side only takes rarely holds. A small trade now saves friction for the rest of the season.' },
+          { say: 'Sure, and I’ll take your Saturday closes in January too.',
+            reply: 'Wow, okay. That’s a lot. Thank you.',
+            deal: -10, rel: 4, tactic: 'Gave more than was asked',
+            note: 'Generous, but you added a concession nobody asked for. Fair trades build trust better than one-sided gifts.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'You both get the days that matter, Mae approves the swap, and neither of you feels shortchanged.',
+        fair: 'You get some of the time you need, but not all of it.',
+        weak: 'You end up working the days you wanted off.',
+        walked: 'Riley takes it to Mae, and the two of you stop talking about it.'
+      }
+    },
+    {
+      id: 'credit', cat: 'Conflict', title: 'Credit where it’s due',
+      them: 'Jordan', role: 'a teammate',
+      setup: 'You built the customer churn analysis. In this morning’s team meeting, Jordan presented it to leadership as his work and never mentioned you. You catch him afterward.',
+      goal: 'Get the credit corrected without making an enemy.',
+      opener: 'Hey, you wanted to grab me? The meeting went well, right? People loved the churn numbers.',
+      walk: 'I’m not doing this right now. Let’s talk later.',
+      rounds: [
+        [
+          { say: 'They did, and I’m glad it landed. I wanted to talk about it, though. I built that analysis, and it was presented without my name. I’d like to understand how that happened.',
+            reply: 'Oh. I mean, I pulled it into the deck and walked through it. I didn’t think it mattered who did which part. We’re a team.',
+            deal: 12, rel: 8, tactic: 'Named it without accusing',
+            note: 'You stated what happened and asked for his side. Leaving room for an explanation kept him talking instead of defending.' },
+          { say: 'Yeah, it went great!',
+            reply: 'Totally. Leadership wants a follow-up version next month. I was thinking I’d present that one too, since we’re a team on this.',
+            deal: -16, rel: 2, tactic: 'Let it slide',
+            note: 'Avoiding the topic keeps the peace for a day, but the pattern usually continues and resentment builds.' },
+          { say: 'You stole my work in front of everyone.',
+            reply: 'Whoa. "Stole" is a strong word. I put it in the deck and presented it. We’re a team.',
+            deal: 4, rel: -18, tactic: 'Led with an accusation',
+            note: 'Even when it is accurate, an accusation forces Jordan to defend himself instead of fixing things. Describe what happened instead.' }
+        ],
+        [
+          { say: 'We are a team, and that’s why it matters. Leadership will have follow-up questions that I’m best placed to answer. For the next version, I’d like to present the analysis section myself.',
+            reply: 'That’s fair. They did ask a couple of questions I fumbled. Should I say something about today?',
+            deal: 16, rel: 8, tactic: 'Asked for a specific change',
+            note: 'Tying credit to a practical reason, namely who can answer the questions, and asking for a concrete fix made it easy for Jordan to agree.' },
+          { say: 'It’s fine, I guess. Just mention me next time?',
+            reply: 'Sure, I can give you a shout-out. Is there anything you want me to do about today?',
+            deal: -6, rel: 4, tactic: 'Shrank the request',
+            note: 'A soft request with a question mark is easy to forget. Be specific about what you want to happen next time.' },
+          { say: 'I’m going to tell our manager what you did.',
+            reply: 'Seriously? You didn’t even talk to me first. Look, what do you want me to do about today?',
+            deal: 2, rel: -16, tactic: 'Escalated first',
+            note: 'Escalating is sometimes right, especially if it keeps happening. As a first move, it skips the chance for Jordan to fix it himself.' }
+        ],
+        [
+          { say: 'A short note to the group saying the analysis was mine, and that I’ll lead the deep dive next month, would cover it.',
+            reply: 'Easy. I’ll send it this afternoon and copy you. Sorry, I should have done that from the start.',
+            deal: 12, rel: 6, tactic: 'Defined the repair',
+            note: 'You named exactly what would make it right. A specific, modest repair is easy to say yes to and visible to the people who matter.' },
+          { say: 'Nothing. Just forget it.',
+            reply: 'Okay, if you’re sure. Thanks for being cool about it.',
+            deal: -10, rel: 2, tactic: 'Dropped the repair',
+            note: 'Letting him off completely leaves leadership with the wrong picture. A small public correction matters more than a private apology.' },
+          { say: 'An apology in front of the whole team at the next meeting.',
+            reply: 'That’s a bit much. I’ll send a note, but I’m not doing a public apology.',
+            deal: 2, rel: -10, tactic: 'Demanded a public apology',
+            note: 'A public apology can feel deserved, but it humiliates. A factual correction gets you the credit without making an enemy.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'Leadership learns the analysis was yours, you will lead the next deep dive, and Jordan is more careful about credit from now on.',
+        fair: 'Jordan acknowledges it privately, but the people who matter still think it was his.',
+        weak: 'Nothing changes, and the next presentation will probably go the same way.',
+        walked: 'Jordan walks off. Now you have a conflict with a teammate and still no credit.'
+      }
+    },
+    {
+      id: 'handoffs', cat: 'Conflict', title: 'Late handoffs',
+      them: 'Sam', role: 'a teammate',
+      setup: 'You and Sam share a weekly client report. Sam is supposed to send the data on Wednesday so you can write the report on Thursday. For three weeks running it has arrived Thursday, and you have been finishing at night.',
+      goal: 'Fix the handoff for good and keep working well with Sam.',
+      opener: 'Hey, sorry the numbers were late again. Crazy week. What’s up?',
+      walk: 'I don’t need this right now. Let’s talk another time.',
+      rounds: [
+        [
+          { say: 'Thanks for saying that. It’s been three weeks in a row now, and when the data comes Thursday I end up finishing the report at night. Can we figure out what’s getting in the way?',
+            reply: 'Yeah. Honestly, the finance export doesn’t refresh until Wednesday afternoon, and I’m stuck in meetings all Wednesday.',
+            deal: 12, rel: 10, tactic: 'Described the impact',
+            note: 'You stated the pattern and its effect on you, then asked about causes. Facts and impact are hard to argue with.' },
+          { say: 'No worries, it’s fine!',
+            reply: 'Oh good. It’s the finance export. It doesn’t refresh until Wednesday afternoon, and I’m in meetings all day.',
+            deal: -16, rel: 2, tactic: 'Said it was fine when it wasn’t',
+            note: 'Saying it is fine teaches Sam that the current timing works for you. The late nights will continue.' },
+          { say: 'You’re always late and I’m sick of covering for you.',
+            reply: 'Always? That’s not fair. The finance export doesn’t refresh until Wednesday afternoon, and I’m in meetings all day.',
+            deal: 2, rel: -18, tactic: 'Generalized and blamed',
+            note: '"Always" invites an argument about the exceptions instead of a fix. Sticking to specific weeks keeps the conversation on solving it.' }
+        ],
+        [
+          { say: 'That helps. What if you sent the raw export as soon as it refreshes, and I do the cleanup myself? Or we move the handoff to Wednesday noon with whatever is ready?',
+            reply: 'Sending the raw export would be easy for me. Could you live with it being a bit messy?',
+            deal: 16, rel: 8, tactic: 'Solved for the real cause',
+            note: 'Once you knew the actual bottleneck, you offered options that fix it. Giving Sam two options to choose from builds ownership.' },
+          { say: 'Just figure it out. It’s not my problem.',
+            reply: 'Okay. I could send the raw export when it lands, if you don’t mind it messy?',
+            deal: 2, rel: -14, tactic: 'Refused shared ownership',
+            note: 'It is partly your problem, since you are the one staying late. Refusing to engage on the fix makes Sam less motivated to change.' },
+          { say: 'Okay, I’ll just adjust to whenever it comes.',
+            reply: 'Thanks. Actually, I could send the raw export when it lands, if you don’t mind it messy?',
+            deal: -12, rel: 4, tactic: 'Absorbed the problem',
+            note: 'Adjusting around the delay makes your evenings the buffer. The underlying cause stays untouched.' }
+        ],
+        [
+          { say: 'Messy is fine. Let’s try it for the next two weeks and check in after. I’ll put a reminder on both our calendars.',
+            reply: 'Sounds good. Thanks for being straight with me about it.',
+            deal: 10, rel: 8, tactic: 'Set a trial and a check-in',
+            note: 'A short trial lowers the stakes for both of you, and a scheduled check-in means you will not have to raise this again from scratch.' },
+          { say: 'Fine, but if it’s late again I’m going to our manager.',
+            reply: 'Got it. There’s no need for threats. I said I’d do it.',
+            deal: 4, rel: -12, tactic: 'Ended with a threat',
+            note: 'Mentioning escalation right after reaching a deal undercuts it. Save that step for if the fix does not hold.' },
+          { say: 'Sure, whatever works.',
+            reply: 'Cool. I’ll try to remember.',
+            deal: -6, rel: 2, tactic: 'Left it vague',
+            note: 'Agreeing without a check-in makes it easy for things to drift back. A plan without a follow-up rarely survives a busy month.' }
+        ]
+      ],
+      outcomes: {
+        strong: 'The data arrives Wednesday, your evenings are back, and a standing check-in keeps it that way.',
+        fair: 'Things improve for a week or two, but the fix is not locked in.',
+        weak: 'The handoffs stay late, and so do you.',
+        walked: 'Sam gets defensive and leaves, and nothing changes.'
+      }
+    }
+  ];
+
+  var START_DEAL = 45, START_REL = 55, WALK_AT = 25;
+  var TIER_LABEL = { strong: 'Strong deal', fair: 'Fair deal', weak: 'Weak deal', walked: 'No deal' };
+  var TIER_TITLE = { strong: 'You came out ahead', fair: 'You got part of what you wanted', weak: 'You left value on the table', walked: 'They ended the conversation' };
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var $ = function (id) { return document.getElementById(id); };
+  var state = null;
+  var timers = [];
+
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+  }
+  function clamp(n) { return Math.max(0, Math.min(100, n)); }
+  function shuffle(a) {
+    var b = a.slice();
+    for (var i = b.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = b[i]; b[i] = b[j]; b[j] = t; }
+    return b;
+  }
+  function later(fn, ms) { var t = setTimeout(fn, reduceMotion ? 0 : ms); timers.push(t); }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+  // Remembered best results (per browser only)
+  function loadBest() { try { return JSON.parse(localStorage.getItem('ans-best') || '{}'); } catch (e) { return {}; } }
+  function saveBest(id, tier) {
+    var rank = { walked: 0, weak: 1, fair: 2, strong: 3 };
+    var best = loadBest();
+    if (!best[id] || rank[tier] > rank[best[id]]) best[id] = tier;
+    try { localStorage.setItem('ans-best', JSON.stringify(best)); } catch (e) {}
+  }
+
+  function renderPicker() {
+    var best = loadBest();
+    var cats = ['Pay', 'Scheduling', 'Conflict'];
+    $('groups').innerHTML = cats.map(function (cat) {
+      var items = SCENARIOS.filter(function (s) { return s.cat === cat; }).map(function (s) {
+        var cur = state && state.s.id === s.id;
+        var badge = best[s.id] ? '<span class="best ' + best[s.id] + '">' + TIER_LABEL[best[s.id]] + '</span>' : '';
+        return '<button class="scen" data-id="' + s.id + '" aria-current="' + (cur ? 'true' : 'false') + '"><span>' + esc(s.title) + '</span>' + badge + '</button>';
+      }).join('');
+      return '<div class="group"><h3>' + cat + '</h3>' + items + '</div>';
+    }).join('');
+  }
+
+  function setMeters(dDeal, dRel) {
+    $('deal-val').textContent = state.deal;
+    $('rel-val').textContent = state.rel;
+    $('deal-fill').style.width = state.deal + '%';
+    $('rel-fill').style.width = state.rel + '%';
+    $('deal-bar').setAttribute('aria-valuenow', state.deal);
+    $('rel-bar').setAttribute('aria-valuenow', state.rel);
+    showDelta('deal-delta', dDeal);
+    showDelta('rel-delta', dRel);
+  }
+  function showDelta(id, d) {
+    var el = $(id);
+    if (!d) { el.textContent = ''; el.className = 'delta'; return; }
+    el.textContent = (d > 0 ? '+' : '−') + Math.abs(d);
+    el.className = 'delta ' + (d > 0 ? 'up' : 'down');
+  }
+
+  function addLine(kind, who, text) {
+    var row = document.createElement('div');
+    row.className = 'line ' + kind;
+    row.innerHTML = '<div class="who">' + esc(who) + '</div><p class="said">' + esc(text) + '</p>';
+    $('transcript').appendChild(row);
+    scrollDown();
+    return row;
+  }
+  function addTyping() {
+    var row = document.createElement('div');
+    row.className = 'line them typing';
+    row.innerHTML = '<div class="who">' + esc(state.s.them) + '</div><p class="said" aria-label="' + esc(state.s.them) + ' is replying"><span></span><span></span><span></span></p>';
+    $('transcript').appendChild(row);
+    scrollDown();
+    return row;
+  }
+  function scrollDown() { var t = $('transcript'); t.scrollTop = t.scrollHeight; }
+
+  function start(id, focusStage) {
+    clearTimers();
+    var s = SCENARIOS.filter(function (x) { return x.id === id; })[0] || SCENARIOS[0];
+    state = { s: s, round: 0, deal: START_DEAL, rel: START_REL, log: [], done: false };
+    renderPicker();
+    $('brief').innerHTML =
+      '<p class="cat">' + esc(s.cat) + ' scenario, with ' + esc(s.them) + ', ' + esc(s.role) + '</p>' +
+      '<h2>' + esc(s.title) + '</h2>' +
+      '<p>' + esc(s.setup) + '</p>' +
+      '<p class="goal"><b>Your goal:</b> ' + esc(s.goal) + '</p>';
+    $('transcript').innerHTML = '';
+    $('bottom').innerHTML = '';
+    setMeters(0, 0);
+    addLine('them', s.them, s.opener);
+    renderMoves();
+    if (focusStage) {
+      var stage = $('stage');
+      if (window.innerWidth < 900) stage.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  function renderMoves() {
+    var opts = shuffle(state.s.rounds[state.round].map(function (o, i) { return { o: o, i: i }; }));
+    var n = state.round + 1;
+    $('bottom').innerHTML =
+      '<div class="moves"><p class="prompt">Your move, ' + n + ' of ' + state.s.rounds.length + '. What do you say?</p>' +
+      opts.map(function (x) { return '<button class="opt" data-i="' + x.i + '">' + esc(x.o.say) + '</button>'; }).join('') +
+      '</div>';
+  }
+
+  function choose(i) {
+    if (!state || state.done) return;
+    var o = state.s.rounds[state.round][i];
+    Array.prototype.forEach.call(document.querySelectorAll('.opt'), function (b) { b.disabled = true; });
+    $('bottom').innerHTML = '';
+    addLine('you', 'You', o.say);
+
+    var prevDeal = state.deal, prevRel = state.rel;
+    state.deal = clamp(state.deal + o.deal);
+    state.rel = clamp(state.rel + o.rel);
+    state.log.push({ round: state.round + 1, o: o });
+
+    var typing = addTyping();
+    later(function () {
+      typing.remove();
+      setMeters(state.deal - prevDeal, state.rel - prevRel);
+      addLine('them', state.s.them, o.reply);
+      if (state.rel < WALK_AT) {
+        later(function () {
+          addLine('them', state.s.them, state.s.walk);
+          finish('walked');
+        }, 650);
+        return;
+      }
+      state.round += 1;
+      if (state.round >= state.s.rounds.length) {
+        later(function () { finish(tierFor()); }, 450);
+      } else {
+        renderMoves();
+      }
+    }, 750);
+  }
+
+  function tierFor() {
+    var score = state.deal * 0.6 + state.rel * 0.4;
+    if (score >= 72) return 'strong';
+    if (score >= 55) return 'fair';
+    return 'weak';
+  }
+
+  function quality(o) {
+    var net = o.deal + o.rel;
+    if (net >= 15) return ['good', 'Strong move'];
+    if (net <= -5) return ['costly', 'Costly'];
+    return ['mixed', 'Mixed'];
+  }
+
+  function finish(tier) {
+    state.done = true;
+    saveBest(state.s.id, tier);
+    renderPicker();
+    var idx = SCENARIOS.indexOf(state.s);
+    var next = SCENARIOS[(idx + 1) % SCENARIOS.length];
+    var moves = state.log.map(function (m) {
+      var q = quality(m.o);
+      return '<li><div class="head"><span class="round">Move ' + m.round + '</span><span class="tactic">' + esc(m.o.tactic) + '</span><span class="chip ' + q[0] + '">' + q[1] + '</span></div>' +
+        '<p class="quote">“' + esc(m.o.say) + '”</p><p class="coach">' + esc(m.o.note) + '</p></li>';
+    }).join('');
+    $('bottom').innerHTML =
+      '<div class="debrief" tabindex="-1" id="debrief">' +
+      '<div class="result"><h3>' + TIER_TITLE[tier] + '</h3><span class="tier ' + tier + '">' + TIER_LABEL[tier] + '</span></div>' +
+      '<p>' + esc(state.s.outcomes[tier]) + ' You finished with a deal score of ' + state.deal + ' and a relationship score of ' + state.rel + '.</p>' +
+      '<ul class="movelist">' + moves + '</ul>' +
+      '<div class="actions"><button class="btn" data-act="retry">Try this scenario again</button>' +
+      '<button class="btn secondary" data-act="next" data-next="' + next.id + '">Next: ' + esc(next.title) + '</button></div>' +
+      '</div>';
+    var d = $('debrief');
+    d.focus({ preventScroll: true });
+    d.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'nearest' });
+  }
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('button');
+    if (!t) return;
+    if (t.classList.contains('scen')) { start(t.getAttribute('data-id'), true); return; }
+    if (t.classList.contains('opt')) { choose(parseInt(t.getAttribute('data-i'), 10)); return; }
+    var act = t.getAttribute('data-act');
+    if (act === 'retry') start(state.s.id, false);
+    if (act === 'next') start(t.getAttribute('data-next'), true);
+  });
+
+  start(SCENARIOS[0].id, false);
+})();
+</script>
+</body>
+</html>

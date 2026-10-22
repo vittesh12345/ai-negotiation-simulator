@@ -224,6 +224,9 @@
   dl.tactics dd { margin: 0.2rem 0 0; color: var(--muted); font-family: var(--serif); font-size: 1.05rem; max-width: 32rem; }
   .about p { max-width: 40rem; margin: 0 0 0.9rem; }
   .about .fact { font-family: var(--serif); font-size: 1.25rem; line-height: 1.5; color: var(--ink); }
+  .contact p { max-width: 40rem; margin: 0 0 1.25rem; font-family: var(--serif); font-size: 1.2rem; }
+  .btn.mail { display: inline-block; text-decoration: none; padding: 0.8rem 1.25rem; overflow-wrap: anywhere; }
+  .btn.mail:hover { background: var(--you); color: #fff; }
   footer { border-top: 1px solid var(--line); padding-block: 1.75rem 2.5rem; color: var(--muted); font-size: 0.9rem; }
 
   @media (max-width: 900px) {
@@ -250,7 +253,8 @@
       <nav aria-label="Sections">
         <a href="#how">How it works</a>
         <a href="#tactics" class="hide-sm">Tactics</a>
-        <a href="#about">About</a>
+        <a href="#about" class="hide-sm">About</a>
+        <a href="#contact">Contact</a>
       </nav>
     </header>
   </div>
@@ -325,6 +329,14 @@
         <h2>About</h2>
         <p class="fact">Built by Vittesh Maganti as an independent project, with eight scenarios covering pay negotiations, scheduling, and workplace conflict. The simulator was tested with 15 peers across 60 practice sessions.</p>
         <p>This web version runs entirely in your browser. Nothing you choose is sent anywhere.</p>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="wrap">
+        <h2>Contact</h2>
+        <p>Questions, feedback on a scenario, or an idea for a new one? Send an email.</p>
+        <a class="btn mail" href="mailto:mr.ethanchen@gmail.com?subject=AI%20Negotiation%20Simulator">Email mr.ethanchen@gmail.com</a>
       </div>
     </section>
   </main>
